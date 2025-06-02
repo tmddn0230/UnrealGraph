@@ -51,6 +51,18 @@ struct stConnectAck : public stHeader
 	};
 };
 
+struct stData : public stHeader
+{
+	// Data Size = header + payload
+	uint16 totalSize;
+	stData()
+	{
+		totalSize = 0;
+		SetHeader(prData, sizeof(stData));
+	}
+};
+
+
 
 #pragma pack(pop)  // ← 여기서 원래대로 정렬 복구
 

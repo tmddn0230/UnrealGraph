@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/GameInstanceSubsystem.h"
 // packet
 #include "Common/Packet.h"
 
@@ -18,7 +18,7 @@ UNREALGRAPH_API DECLARE_LOG_CATEGORY_EXTERN(LogNetworkManager, Log, All);
 class PacketSession;
 
 UCLASS()
-class UNREALGRAPH_API ANetworkManager : public AActor
+class UNREALGRAPH_API UNetworkManager : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
@@ -32,7 +32,7 @@ public:
 	FTimerHandle ReceiveTimerHandle;
 public:	
 	// Sets default values for this actor's properties
-	ANetworkManager();
+
 
 	// TCP
 	UFUNCTION(BlueprintCallable)
@@ -49,11 +49,8 @@ public:
 	void RecvDatas(TArray<uint8> packet);
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
 };

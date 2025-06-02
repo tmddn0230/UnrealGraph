@@ -26,6 +26,8 @@ public:
 	RecvWorker(FSocket* sock, TSharedPtr< PacketSession > session);
 	~RecvWorker();
 
+	void Start();
+
 	virtual bool Init() override;
 	virtual uint32 Run() override;
 	virtual void Exit() override;
@@ -49,6 +51,8 @@ protected:
 public:
 	SendWorker(FSocket* sock, TSharedPtr< PacketSession > session);
 	~SendWorker();
+
+	void Start();
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;

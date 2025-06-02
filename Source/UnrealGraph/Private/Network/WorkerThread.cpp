@@ -14,37 +14,43 @@ DEFINE_LOG_CATEGORY(LogNetworkThread);
 // RecvWorker
 //--------------------------------------------------------------------------------------------------------------------------
 
-RecvWorker::RecvWorker(FSocket* sock, TSharedPtr<PacketSession> session)
+RecvWorker::RecvWorker(FSocket* sock, TSharedPtr<PacketSession> session) : Socket(sock), Session(session)
 {
-	Thread = FRunnableThread::Create(this, TEXT("RecvWorkerThread"));
+
 }
+
+
 
 RecvWorker::~RecvWorker()
 {
 	Destroy();
 }
 
+void RecvWorker::Start()
+{
+	Thread = FRunnableThread::Create(this, TEXT("RecvWorkerThread"));
+}
+
 bool RecvWorker::Init()
 {
-	if (Thread) {
+
 		UE_LOG(LogNetworkThread, Log, TEXT("Recv Thread Init"));
-		return true;
-	}
-	else
-	{
-		UE_LOG(LogNetworkThread, Log, TEXT("Failed Thread Init"));
-		return false;
-	}
+     	return true;
+
 }
 
 uint32 RecvWorker::Run()
 {
 	while (bRun)
 	{
+
+		PacketSessionRef pSession = Session.Pin();
+		if (pSession == nullptr) continue;
+
 		TArray<uint8> Packet;
 		if (ReceivePacket(OUT Packet))
 		{
-			if (TSharedPtr<PacketSession> pSession = Session.Pin())
+			if (pSession)
 			{
 				pSession->RecvPacketQueue.Enqueue(Packet);
 			}
@@ -124,9 +130,9 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Results, int32 Size)
 //--------------------------------------------------------------------------------------------------------------------------
 
 
-SendWorker::SendWorker(FSocket* sock, TSharedPtr<PacketSession> session)
+SendWorker::SendWorker(FSocket* sock, TSharedPtr<PacketSession> session) : Socket(sock), Session(session)
 {
-	Thread = FRunnableThread::Create(this, TEXT("SendWorkerThread"));
+
 }
 
 SendWorker::~SendWorker()
@@ -134,31 +140,29 @@ SendWorker::~SendWorker()
 	Destroy();	
 }
 
+void SendWorker::Start()
+{
+	Thread = FRunnableThread::Create(this, TEXT("SendWorkerThread"));
+}
+
 bool SendWorker::Init()
 {
-	if (Thread) {
-		UE_LOG(LogNetworkThread, Log, TEXT("Send Thread Init"));
-		return true;
-	}
-	else
-	{
-		UE_LOG(LogNetworkThread, Log, TEXT("Failed Thread Init"));
-		return false;
-	}
+	UE_LOG(LogNetworkThread, Log, TEXT("Send Thread Init"));
+	return true;
 }
 
 uint32 SendWorker::Run()
 {
 	while (bRun)
 	{
+		PacketSessionRef pSession = Session.Pin();
+		if (pSession == nullptr) continue;
+
 		CSendBufferRef SendBuffer;
 
-		if (PacketSessionRef pSession = Session.Pin())
+		if (pSession->SendPacketQueue.Dequeue(OUT SendBuffer))
 		{
-			if (pSession->SendPacketQueue.Dequeue(OUT SendBuffer))
-			{
-				SendPacket(SendBuffer);
-			}
+			SendPacket(SendBuffer);
 		}
 	}
 

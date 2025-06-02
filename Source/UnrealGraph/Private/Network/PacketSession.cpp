@@ -9,7 +9,7 @@
 // packet
 #include "Common/Packet.h"
 
-PacketSession::PacketSession(FSocket* sock, ANetworkManager* networkMgr) : Socket(sock), NetworkMgr(networkMgr)
+PacketSession::PacketSession(FSocket* sock) : Socket(sock)
 {
 
 }
@@ -22,19 +22,23 @@ PacketSession::~PacketSession()
 void PacketSession::RunThread()
 {
 	RecvWorkerThread = MakeShared<RecvWorker>(Socket, AsShared());
+	RecvWorkerThread->Start();
 	SendWorkerThread = MakeShared<SendWorker>(Socket, AsShared());
+	SendWorkerThread->Start();
 }
 
 void PacketSession::DisConnect()
 {
 	if (RecvWorkerThread)
 	{
+		RecvWorkerThread->Stop();
 		RecvWorkerThread->Destroy();
 		RecvWorkerThread = nullptr;
 	}
 
 	if (SendWorkerThread)
 	{
+		SendWorkerThread->Stop();
 		SendWorkerThread->Destroy();
 		SendWorkerThread = nullptr;
 	}
@@ -48,13 +52,17 @@ void PacketSession::HandleRecvPackets()
 		if (RecvPacketQueue.Dequeue(OUT Packet) == false)
 			break;
 
-		if (NetworkMgr)
+		auto* GameInstance = GWorld->GetGameInstance()->GetSubsystem<UNetworkManager>();
+
+		if (GameInstance)
 		{
 			stHeader header;
 
 			memcpy(&header, Packet.GetData(), sizeof(stHeader));
 
-			NetworkMgr->Parse(Packet);
+			int32 protocol = header.nProtocol;
+
+			GameInstance->Parse(protocol, Packet);
 		}
 	}
 }

@@ -6,7 +6,7 @@
 
 class FSocket;
 class CSendBuffer;
-class ANetworkManager;
+class UNetworkManager;
 class RecvWorker;
 class SendWorker;
 
@@ -21,7 +21,6 @@ class UNREALGRAPH_API PacketSession : public TSharedFromThis< PacketSession >	//
 {
 public:
 	FSocket* Socket;
-	TSharedPtr<ANetworkManager> NetworkMgr;
 	
 	TSharedPtr< RecvWorker > RecvWorkerThread;
 	TSharedPtr< SendWorker > SendWorkerThread;
@@ -32,7 +31,7 @@ public:
 
 
 public:
-	PacketSession(FSocket* sock, ANetworkManager* networkmgr);
+	PacketSession(FSocket* sock);
 	~PacketSession();
 
 	void RunThread();

@@ -15,15 +15,9 @@
 
 DEFINE_LOG_CATEGORY(LogNetworkManager);
 
-// Sets default values
-ANetworkManager::ANetworkManager()
-{
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 
-}
 
-void ANetworkManager::Connect()
+void UNetworkManager::Connect()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(TEXT("Stream"), TEXT("Client Socket"));
 
@@ -44,8 +38,8 @@ void ANetworkManager::Connect()
 		UE_LOG(LogNetworkManager, Log, TEXT("Connection Success"));
 
 		// Session
-		GetWorld()->GetTimerManager().SetTimer(ReceiveTimerHandle, this, &ANetworkManager::HandleRecvPackets, 0.01f, true);
-		GameServerPacketSession = MakeShared<PacketSession>(Socket, this);
+		GetWorld()->GetTimerManager().SetTimer(ReceiveTimerHandle, this, &UNetworkManager::HandleRecvPackets, 0.01f, true);
+		GameServerPacketSession = MakeShared<PacketSession>(Socket);
 		GameServerPacketSession->RunThread();
 	}
 	else
@@ -54,12 +48,14 @@ void ANetworkManager::Connect()
 	}
 }
 
-void ANetworkManager::Disconnect()
+void UNetworkManager::Disconnect()
 {
+	GameServerPacketSession->DisConnect();
+	
 	Socket->Close();
 }
 
-void ANetworkManager::HandleRecvPackets()
+void UNetworkManager::HandleRecvPackets()
 {
 	if (Socket == nullptr || GameServerPacketSession == nullptr)
 		return;
@@ -67,7 +63,7 @@ void ANetworkManager::HandleRecvPackets()
 	GameServerPacketSession->HandleRecvPackets();
 }
 
-void ANetworkManager::Parse(int32 protocol, TArray<uint8> packet)
+void UNetworkManager::Parse(int32 protocol, TArray<uint8> packet)
 {
 	switch (protocol)
 	{
@@ -76,7 +72,7 @@ void ANetworkManager::Parse(int32 protocol, TArray<uint8> packet)
 	}
 }
 
-void ANetworkManager::SendPacket(stHeader* packetData)
+void UNetworkManager::SendPacket(stHeader* packetData)
 {
 	if (packetData)
 	{
@@ -97,33 +93,41 @@ void ANetworkManager::SendPacket(stHeader* packetData)
 	}
 }
 
-void ANetworkManager::RecvConnect(TArray<uint8> packet)
+void UNetworkManager::RecvConnect(TArray<uint8> packet)
 {
 	// user(signalMaker 가 접속할 때 마다 호출 됨)
 	// 호출 될 때 마다 특정 UI 를 추가하거나 할듯
 	stConnectAck ConnectAck;
 	memcpy(&ConnectAck, packet.GetData(), sizeof(stConnectAck));
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Conneted! %d"), ConnectAck.Index));
 }
 
-void ANetworkManager::RecvDatas(TArray<uint8> packet)
+void UNetworkManager::RecvDatas(TArray<uint8> packet)
 {
-	
+	stData DataAck;
+	memcpy(&DataAck, packet.GetData(), sizeof(stData));
+	// json 읽어야 함
+
+    // json 데이터 시작 위치 포인터
+	uint8* jsonDataPtr = packet.GetData() + sizeof(stData);
+
+	// FString 으로 변환 (UTF-8 가정)
+	FString jsonStr = FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(jsonDataPtr)));
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, jsonStr);
 }
 
-// Called when the game starts or when spawned
-void ANetworkManager::BeginPlay()
+void UNetworkManager::Initialize(FSubsystemCollectionBase& Collection)
 {
-	Super::BeginPlay();
-	
 	// SET DATAS
 	IpAddress = "127.0.0.1";
 	Port = 25001;
 }
 
-// Called every frame
-void ANetworkManager::Tick(float DeltaTime)
+void UNetworkManager::Deinitialize()
 {
-	Super::Tick(DeltaTime);
-
+	Disconnect();
 }
+
 
